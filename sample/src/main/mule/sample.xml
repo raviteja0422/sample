@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="c42b255d-45bd-4860-8d4e-46b2a95fd8d0" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="4519bf59-f0ad-4c04-bc5a-8f42eb06a340" file="default.yaml" />
+	<flow name="sampleFlow" doc:id="c77035dd-06c6-4fcd-865c-6c676d143877" >
+		<http:listener doc:name="Listener" doc:id="85c51dce-db98-4829-9f78-a3a88daa3ed1" config-ref="HTTP_Listener_config" path="/api"/>
+		<logger level="INFO" doc:name="Logger" doc:id="77505550-03d5-4988-9295-a914a0f91972" message="${DB.name:last}"/>
+		<logger level="INFO" doc:name="Logger" doc:id="3c4eb36b-e20f-4e7d-a387-dee835615653" message="#[message.attributes.queryParams.name]"/>
+		<set-variable value="#[message.attributes.queryParams.name]" doc:name="Set Variable" doc:id="39839a3d-16f6-42e7-bc31-9640b8cd8e4f" variableName="name"/>
+		<ee:transform doc:name="Transform Message" doc:id="b625e1ec-1627-411d-8355-8be49dca3904" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::Runtime
+output application/json
+---
+if (vars.name == "" or vars.name == null)
+fail ("abc is null")
+else vars.name]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c6cb66d0-978b-498f-a114-148bf485d1bd" >
+				<set-payload value='abcd' doc:name="Set Payload" doc:id="08537ccc-2ab0-4469-8685-ae245d803025" />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="sampleFlow1" doc:id="126d94f1-4809-49b7-a21b-670badd96890" >
+		<http:listener doc:name="Listener" doc:id="9c7d0134-eacd-4b11-a56b-fc9565cc7215" config-ref="HTTP_Listener_config" path="/dw"/>
+		<ee:transform doc:name="Transform Message" doc:id="069527d1-620b-4c9b-804c-2969443165c1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Objects
+var myVar = read('<xml attr="x"><a>true</a><b>1</b></xml>', 'application/xml')
+output application/json
+---
+{ "entrySet" : entrySet(myVar) }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
